@@ -1,19 +1,19 @@
 <script lang="ts">
-    import { SetDateInfinite, type BarChart, type LossBar } from "./bar"
-    import BarScrollable from "./BarScrollable.svelte"
+    import * as _ from "lodash"
+    import { SetDateInfinite } from "./bar"
+    import GraphContainer from "./GraphContainer.svelte"
     import LineOrCandlestick from "./LineOrCandlestick.svelte"
-    import MatureFilterSelector from "./MatureFilterSelector.svelte"
     import { getMemorisedDays } from "./MemorisedBar"
     import NoGraph from "./NoGraph.svelte"
-    import { emptyBuckets, today, type Buckets } from "./revlogGraphs"
     import { catchErrors } from "./search"
     import { binSize, card_data, fatigueLoss, revlogs, searchLimit } from "./stores"
     import type { TrendInfo, TrendLine } from "./trend"
     import TrendValue from "./TrendValue.svelte"
+    import { matrix } from "./matrix"
 
     let show = false
     let retrievabilityDays: number[] | undefined = undefined
-    let fatigueRMSEBuckets: Buckets<LossBar[]> = emptyBuckets(() => [])
+    let bw_matrix: Record<string, (number | undefined)[]> | undefined = undefined
 
     $: if ($revlogs && $card_data && show) {
         let data = catchErrors(() =>
@@ -22,6 +22,7 @@
 
         retrievabilityDays = Array.from(data.retrievabilityDays)
         $fatigueLoss = data.fatigueRMSE
+        bw_matrix = data.bw_matrix
     }
 
     $: truncated = $searchLimit !== 0
@@ -37,6 +38,11 @@
     }
 
     let trend_data: TrendLine
+    let svg: SVGElement | undefined = undefined
+
+    $: if (svg && bw_matrix) {
+        matrix({ grid: bw_matrix }, svg)
+    }
 </script>
 
 {#if retrievabilityDays}
@@ -55,9 +61,20 @@
     <NoGraph>Loading</NoGraph>
 {/if}
 
+{#if bw_matrix}
+    <GraphContainer>
+        <svg bind:this={svg}></svg>
+    </GraphContainer>
+{/if}
+
 <style>
     .big {
         width: 100%;
         height: 100%;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(12, auto);
     }
 </style>

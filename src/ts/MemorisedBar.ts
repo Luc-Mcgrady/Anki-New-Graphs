@@ -65,8 +65,9 @@ export function getMemorisedDays(
 
     let last_stability: number[] = []
 
+    const default_bin = { predicted: 0, real: 0, count: 0 }
     function incrementLoss(bin: LossBin | null, predicted: number, real: number) {
-        bin ??= { predicted: 0, real: 0, count: 0 }
+        bin ??= { ...default_bin }
 
         bin.predicted = (bin.predicted || 0) + predicted
         bin.real = (bin.real || 0) + real
@@ -78,6 +79,8 @@ export function getMemorisedDays(
     let fatigue_bins: Buckets<LossBin[]> = emptyBuckets(() => [])
     let today_so_far = 0
     let last_date = new Date()
+
+    let bw_matrix_count: Record<number, LossBin[]> = {}
 
     for (const revlog of revlogs) {
         const config = card_config(revlog.cid)
@@ -131,19 +134,30 @@ export function getMemorisedDays(
                 last_date = newDate
             }
 
-            const predicted = fsrs.forgetting_curve(elapsed, card.stability)
+            const p = fsrs.forgetting_curve(elapsed, card.stability)
             const y = grade > 1 ? 1 : 0
             let card_type: LossBin[]
 
-            fatigue_bins.all[today_so_far] = incrementLoss(
-                fatigue_bins.all[today_so_far],
-                predicted,
-                y
-            )
+            fatigue_bins.all[today_so_far] = incrementLoss(fatigue_bins.all[today_so_far], p, y)
+
             if (elapsed >= 1) {
+                if (!new_card && card.stability > 1) {
+                    const r_bin_power = 1.4
+                    const r_bin = _.round(
+                        Math.pow(
+                            r_bin_power,
+                            Math.floor(Math.log(card.stability) / Math.log(r_bin_power))
+                        ),
+                        2
+                    )
+                    const d_bin = Math.round(card.difficulty)
+                    bw_matrix_count[r_bin] ??= []
+                    let retention_row = bw_matrix_count[r_bin]
+                    retention_row[d_bin] = incrementLoss(retention_row[d_bin], p, y)
+                }
                 fatigue_bins.not_learn[today_so_far] = incrementLoss(
                     fatigue_bins.not_learn[today_so_far],
-                    predicted,
+                    p,
                     y
                 )
                 if (elapsed >= 21) {
@@ -154,7 +168,7 @@ export function getMemorisedDays(
             } else {
                 card_type = fatigue_bins.learn
             }
-            card_type[today_so_far] = incrementLoss(card_type[today_so_far], predicted, y)
+            card_type[today_so_far] = incrementLoss(card_type[today_so_far], p, y)
 
             today_so_far += 1
         }
@@ -209,5 +223,18 @@ export function getMemorisedDays(
         )
     )
 
-    return { retrievabilityDays, fatigueRMSE }
+    const bw_matrix = Object.fromEntries(
+        Object.entries(bw_matrix_count).map(([r_bin, row]) => {
+            const new_row = row.map((bin) =>
+                bin.count > 50 ? (bin.real - bin.predicted) / bin.count : undefined
+            )
+            new_row.length = 10
+            return [r_bin, new_row]
+        })
+    )
+
+    console.table(bw_matrix_count)
+    console.table(bw_matrix)
+
+    return { retrievabilityDays, fatigueRMSE, bw_matrix }
 }

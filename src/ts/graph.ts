@@ -6,7 +6,7 @@ export function defaultGraphBounds() {
         marginRight: 70,
         marginTop: 20,
         marginBottom: 25,
-    } as const
+    }
 }
 
 export const MATURE_COLOUR = "#31a354"

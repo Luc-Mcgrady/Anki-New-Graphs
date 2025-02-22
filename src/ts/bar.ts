@@ -44,11 +44,10 @@ export function defaultY(min: number, max: number) {
 export function createAxis(
     svg: SVGElement,
     tick_spacing: number = 1,
-    x: d3.AxisScale<d3.AxisDomain>,
-    y: d3.ScaleLinear<any, any, any>
+    x: d3.AxisScale<any>,
+    y: d3.AxisScale<any>,
+    bounds = defaultGraphBounds()
 ) {
-    const bounds = defaultGraphBounds()
-
     d3.select(svg).selectAll("g").remove()
 
     const axis = d3
