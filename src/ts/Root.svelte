@@ -35,6 +35,7 @@
     import { EASE_COLOURS, formatRetention } from "./revlogGraphs"
     import { barDateLabeler, type BarDatum } from "./bar"
     import { totalCalc } from "./barHelpers"
+    import SRHeatmap from "./SRHeatmap.svelte"
 
     const { width, height } = defaultGraphBounds()
 
@@ -152,6 +153,10 @@
                 Please note that this graph respects the <code>last 12 months / all history</code>
                 option beneath the search bar.
             </p>
+        </GraphContainer>
+        <GraphContainer>
+            <h1>SxR Heatmap</h1>
+            <SRHeatmap cardData={$card_data} />
         </GraphContainer>
     </GraphCategory>
     <GraphCategory>

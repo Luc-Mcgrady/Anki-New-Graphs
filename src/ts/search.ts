@@ -65,6 +65,13 @@ export interface CardData {
     data: string
 }
 
+export interface CardExtraData {
+    d?: number
+    dr?: number
+    pos?: number
+    s?: number
+}
+
 export interface Revlog {
     id: number
     cid: number
